@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>National Network: Integrated UK Logistics</title>
+    
+    <!-- Fonts & Icons -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Urbanist:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <!-- Leaflet Map CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+
+    <style>
+        /* 1. CORE LAYOUT SETUP */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body {
+            background-color: #cbd5e1;
+            display: grid;
+            place-items: center;
+            min-height: 100vh;
+            font-family: 'Urbanist', sans-serif;
+        }
+
+        .slide-container {
+            width: 1280px;
+            height: 720px;
+            background-color: #ffffff;
+            overflow: hidden;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+        }
+
+        /* 2. HEADER - Consistent Navy Style */
+        .header-section {
+            background-color: #1a365d;
+            padding: 25px 40px;
+            color: white;
+            z-index: 10;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-section h2 {
+            font-size: 32px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
+        .header-tag {
+            background-color: rgba(255, 130, 58, 0.2);
+            border: 1px solid #ff823a;
+            color: #ff823a;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        /* 3. CONTENT AREA - Two Column Map + Legend */
+        .content-area {
+            flex-grow: 1;
+            display: grid;
+            grid-template-columns: 1.25fr 1fr;
+            padding: 30px 40px;
+            gap: 40px;
+            z-index: 1;
+            background-color: #f8fafc;
+        }
+
+        /* Map Container */
+        .map-wrapper {
+            position: relative;
+            border-radius: 16px;
+            border: 1px solid #e2e8f0;
+            height: 100%;
+            overflow: hidden;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+            background-color: #aad3df;
+        }
+
+        /* Leaflet custom styling to match presentation palette */
+        .leaflet-container {
+            font-family: 'Urbanist', sans-serif;
+        }
+
+        /* Custom Div Icons for Map Markers */
+        .map-marker-t1 {
+            background-color: #ff823a;
+            border: 2px solid white;
+            border-radius: 50%;
+            box-shadow: 0 0 8px rgba(255,130,58,0.6);
+        }
+
+        .map-marker-t2 {
+            background-color: #1a365d;
+            border: 2px solid white;
+            border-radius: 50%;
+            box-shadow: 0 0 10px rgba(26,54,93,0.6);
+        }
+
+        .map-marker-t3 {
+            background-color: #16a34a;
+            border: 3px solid white;
+            border-radius: 50%;
+            box-shadow: 0 0 12px rgba(22,163,74,0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 11px;
+        }
+
+        /* Tooltip styling override */
+        .custom-tooltip {
+            background-color: #1e293b !important;
+            border: none !important;
+            color: white !important;
+            font-weight: 600 !important;
+            border-radius: 6px !important;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+        }
+        .custom-tooltip::before {
+            border-top-color: #1e293b !important;
+        }
+
+        /* Map Controls Overlay */
+        .map-controls {
+            position: absolute;
+            bottom: 15px;
+            left: 15px;
+            z-index: 1000;
+            background-color: white;
+            padding: 8px 12px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            display: flex;
+            gap: 8px;
+        }
+
+        .control-btn {
+            background-color: #f1f5f9;
+            border: 1px solid #cbd5e1;
+            color: #1e293b;
+            padding: 5px 10px;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .control-btn:hover {
+            background-color: #ff823a;
+            color: white;
+            border-color: #ff823a;
+        }
+
+        /* 4. LOGISTICS FLOW (Right Column) */
+        .logistics-details {
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+            justify-content: center;
+        }
+
+        .flow-section {
+            background-color: white;
+            border-radius: 16px;
+            padding: 24px;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+            transition: all 0.2s ease;
+        }
+
+        .flow-section:hover {
+            border-color: #ff823a;
+        }
+
+        .flow-section h3 {
+            font-size: 19px;
+            color: #1a365d;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .shipping-flow {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .flow-node {
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 14px;
+            color: white;
+            text-align: center;
+            min-width: 100px;
+        }
+
+        .flow-arrow {
+            color: #ff823a;
+            font-size: 18px;
+            animation: slideRight 1.5s infinite linear;
+        }
+
+        @keyframes slideRight {
+            0% { transform: translateX(-5px); opacity: 0.3; }
+            50% { opacity: 1; }
+            100% { transform: translateX(5px); opacity: 0.3; }
+        }
+
+        .logistics-description {
+            font-size: 14px;
+            color: #475569;
+            line-height: 1.5;
+            margin-bottom: 15px;
+        }
+
+        /* SOP / Step Checklist Container */
+        .sop-checklist {
+            border-top: 1px solid #f1f5f9;
+            padding-top: 15px;
+        }
+
+        .sop-checklist h4 {
+            font-size: 13px;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: #64748b;
+            letter-spacing: 0.5px;
+            margin-bottom: 10px;
+        }
+
+        .sop-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+        }
+
+        .sop-step {
+            background-color: #f8fafc;
+            border: 1px solid #f1f5f9;
+            padding: 8px;
+            border-radius: 8px;
+            font-size: 12px;
+            color: #475569;
+            text-align: center;
+            font-weight: 500;
+        }
+
+        .sop-step i {
+            color: #ff823a;
+            margin-bottom: 4px;
+            display: block;
+        }
+
+        /* Stats Cards */
+        .stats-row {
+            display: flex;
+            gap: 15px;
+        }
+
+        .stat-card {
+            flex: 1;
+            background-color: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 18px 15px;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+        }
+
+        .stat-card .num {
+            font-size: 30px;
+            font-weight: 700;
+            color: #1a365d;
+        }
+
+        .stat-card .label {
+            font-size: 12px;
+            color: #64748b;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* 5. FOOTER - Consistent Green Style */
+        .footer-bar {
+            background-color: #daffde;
+            color: #166534;
+            padding: 15px 40px;
+            font-size: 14px;
+            font-weight: 500;
+            border-top: 1px solid #bbf7d0;
+            display: flex;
+            justify-content: space-between;
+        }
+
+    </style>
+</head>
+<body>
+
+<div class="slide-container">
+    <div class="header-section">
+        <h2>National Network & UK Processing Logistics</h2>
+        <span class="header-tag">Live Geospatial Visualization</span>
+    </div>
+
+    <div class="content-area">
+        <!-- MAP SIDE -->
+        <div class="map-wrapper">
+            <div id="map"></div>
+            
+            <!-- Custom interactive map triggers inside slide -->
+            <div class="map-controls">
+                <button class="control-btn" onclick="zoomToNation([56.4, -3.8], 6.5)">Scotland</button>
+                <button class="control-btn" onclick="zoomToNation([52.5, -1.9], 7)">England & Wales</button>
+                <button class="control-btn" onclick="resetMap()">Reset UK</button>
+            </div>
+        </div>
+
+        <!-- LOGISTICS SIDE -->
+        <div class="logistics-details">
+            
+            <!-- Standard Multi-omics Flow -->
+            <div class="flow-section">
+                <h3><i class="fa-solid fa-envelope-open-text" style="color: #ff823a;"></i> Royal Mail Tracked 24 (Standard Logistics)</h3>
+                <div class="shipping-flow">
+                    <div class="flow-node" style="background-color: #ff823a;">Tier 1 Site</div>
+                    <i class="fa-solid fa-angles-right flow-arrow"></i>
+                    <div class="flow-node" style="background-color: #1e3a8a;">Tier 2 / 3 Hub</div>
+                </div>
+                <p class="logistics-description">
+                    Centrifuged and fractionated blood/saliva samples are packed into **UN3373-compliant** safety mailers and posted via **Royal Mail Tracked 24**. Both **Tier 2** and **Tier 3** hubs function identically as standard receiving labs for overnight, -80&deg;C biobanking.
+                </p>
+
+                <!-- Standard Operating Procedure Steps for Visual Balance and Depth -->
+                <div class="sop-checklist">
+                    <h4>Pre-Analytical Standardisation (SOP)</h4>
+                    <div class="sop-grid">
+                        <div class="sop-step">
+                            <i class="fa-solid fa-spinner"></i>
+                            <strong>1. Centrifuge</strong><br>Fractionate on-site
+                        </div>
+                        <div class="sop-step">
+                            <i class="fa-solid fa-box-tissue"></i>
+                            <strong>2. Pack UN3373</strong><br>Leak-proof safety
+                        </div>
+                        <div class="sop-step">
+                            <i class="fa-solid fa-post-office"></i>
+                            <strong>3. Post Tracked</strong><br>Overnight delivery
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Site Counts -->
+            <div class="stats-row">
+                <div class="stat-card">
+                    <div class="num">25+</div>
+                    <div class="label">NHS Trusts</div>
+                </div>
+                <div class="stat-card">
+                    <div class="num">4</div>
+                    <div class="label">Home Nations</div>
+                </div>
+                <div class="stat-card">
+                    <div class="num">12k</div>
+                    <div class="label">Sample Target</div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- 5. FOOTER -->
+    <div class="footer-bar">
+        <span>Strategic Site Network &rarr; <strong>Optimized Sample Pipeline</strong> &rarr; Multi-site Harmonization</span>
+        <span>Secure DATAMIND Safe Haven Access</span>
+    </div>
+</div>
+
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+<script>
+    // Geographic coordinates for actual NHS regions/sites
+    const mapCenter = [54.5, -3.2];
+    const defaultZoom = 5.5;
+    let map;
+
+    window.onload = function() {
+        // Initialize Map
+        map = L.map('map', {
+            zoomControl: false,
+            scrollWheelZoom: true,
+            dragging: true,
+            doubleClickZoom: true,
+            boxZoom: false
+        }).setView(mapCenter, defaultZoom);
+
+        // Load CartoDB Clean Light (Google Maps elegant light mode aesthetic)
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager_labels_under/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
+            subdomains: 'abcd',
+            maxZoom: 20
+        }).addTo(map);
+
+        // Define Expanded Set of Sites (18 Points across UK)
+        const sites = [
+            // Tier 3 Specialist Hubs (Green) - King's College London
+            { name: "King's College London (Tier 3 Specialist Hub)", coords: [51.5074, -0.1278], tier: 3 },
+            
+            // Tier 2 Regional Biobanking Hubs (Navy)
+            { name: "Edinburgh Biobank (Tier 2 Scotland)", coords: [55.9533, -3.1883], tier: 2 },
+            { name: "Cardiff Brain Imaging Hub (Tier 2 Wales)", coords: [51.4816, -3.1791], tier: 2 },
+            { name: "Manchester Regional Hub (Tier 2 North West)", coords: [53.4808, -2.2426], tier: 2 },
+            { name: "Belfast Trust (Tier 2 Northern Ireland)", coords: [54.5973, -5.9301], tier: 2 },
+            { name: "Birmingham Trust (Tier 2 Midlands)", coords: [52.4862, -1.8904], tier: 2 },
+            { name: "Cambridge Regional Hub (Tier 2 East)", coords: [52.2053, 0.1218], tier: 2 },
+            { name: "Oxford Trust (Tier 2 South)", coords: [51.7520, -1.2577], tier: 2 },
+            
+            // Tier 1 Satellite Collection Sites (Orange)
+            { name: "Inverness NHS Highland (Tier 1)", coords: [57.4778, -4.2247], tier: 1 },
+            { name: "NHS Newcastle (Tier 1)", coords: [54.9783, -1.6178], tier: 1 },
+            { name: "Norwich University Hospital (Tier 1)", coords: [52.6309, 1.2974], tier: 1 },
+            { name: "Plymouth NHS Trust (Tier 1)", coords: [50.3755, -4.1427], tier: 1 },
+            { name: "Aberystwyth Health Board (Tier 1)", coords: [52.4153, -4.0829], tier: 1 },
+            { name: "NHS Grampian (Aberdeen) (Tier 1)", coords: [57.1497, -2.0943], tier: 1 },
+            { name: "Leeds Teaching Hospitals (Tier 1)", coords: [53.8008, -1.5491], tier: 1 },
+            { name: "University Hospitals Bristol (Tier 1)", coords: [51.4545, -2.5879], tier: 1 },
+            { name: "Southampton University Hospital (Tier 1)", coords: [50.9097, -1.4044], tier: 1 },
+            { name: "Western Health Trust (Derry) (Tier 1)", coords: [54.9972, -7.3074], tier: 1 }
+        ];
+
+        // Draw Custom Markers
+        sites.forEach(site => {
+            let customIcon;
+            if (site.tier === 1) {
+                customIcon = L.divIcon({ className: 'map-marker-t1', iconSize: [12, 12] });
+            } else if (site.tier === 2) {
+                customIcon = L.divIcon({ className: 'map-marker-t2', iconSize: [18, 18] });
+            } else {
+                customIcon = L.divIcon({ 
+                    className: 'map-marker-t3', 
+                    iconSize: [26, 26],
+                    html: '<i class="fa-solid fa-flask"></i>'
+                });
+            }
+
+            const marker = L.marker(site.coords, { icon: customIcon }).addTo(map);
+            marker.bindTooltip(site.name, {
+                direction: 'top',
+                className: 'custom-tooltip',
+                offset: [0, -5]
+            });
+        });
+
+        // Draw Shipping Arrows/Lines (Visualizing Logistics Networks)
+        // Royal Mail Tracked 24 Shipping Paths (Dashed Navy) to T2 and T3 hubs
+        const standardPaths = [
+            [[57.4778, -4.2247], [55.9533, -3.1883]], // Inverness -> Edinburgh (T2)
+            [[57.1497, -2.0943], [55.9533, -3.1883]], // Aberdeen -> Edinburgh (T2)
+            [[54.9972, -7.3074], [54.5973, -5.9301]], // Derry -> Belfast (T2)
+            [[54.9783, -1.6178], [53.4808, -2.2426]], // Newcastle -> Manchester (T2)
+            [[53.8008, -1.5491], [53.4808, -2.2426]], // Leeds -> Manchester (T2)
+            [[52.4153, -4.0829], [51.4816, -3.1791]], // Aberystwyth -> Cardiff (T2)
+            [[51.4545, -2.5879], [51.7520, -1.2577]], // Bristol -> Oxford (T2)
+            
+            // Standard paths going to KCL (Tier 3 Hub) acting as standard reception
+            [[52.6309, 1.2974], [51.5074, -0.1278]],  // Norwich -> London (T3)
+            [[50.9097, -1.4044], [51.5074, -0.1278]],  // Southampton -> London (T3)
+            [[50.3755, -4.1427], [51.5074, -0.1278]]   // Plymouth -> London (T3)
+        ];
+        
+        standardPaths.forEach(path => {
+            L.polyline(path, {
+                color: '#1a365d',
+                weight: 2.2,
+                dashArray: '5, 8',
+                opacity: 0.8
+            }).addTo(map);
+        });
+    }
+
+    // Interactive Functions for Presentation
+    function zoomToNation(coords, zoomLevel) {
+        map.setView(coords, zoomLevel);
+    }
+
+    function resetMap() {
+        map.setView(mapCenter, defaultZoom);
+    }
+</script>
+
+</body>
+</html>
